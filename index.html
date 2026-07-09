@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0b3d91">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Attendance">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Clinic Attendance</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;min-height:100vh;font-family:'Poppins',system-ui,-apple-system,sans-serif;color:#1e293b}
+  body{
+    background:linear-gradient(135deg,#0b3d91 0%,#1e5fd9 45%,#3b82f6 100%);
+    background-attachment:fixed;
+    display:flex;align-items:flex-start;justify-content:center;
+    padding:env(safe-area-inset-top,16px) 16px env(safe-area-inset-bottom,16px);
+    min-height:100vh;
+  }
+  .app{width:100%;max-width:460px;padding-top:24px}
+  .card{
+    background:#fff;border-radius:22px;padding:26px 22px 24px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25),0 4px 14px rgba(0,0,0,.12);
+    position:relative;overflow:hidden;
+  }
+  .brand{text-align:center;margin-bottom:18px;color:#fff}
+  .brand h1{font-size:22px;font-weight:600;letter-spacing:.3px;margin:0}
+  .brand p{margin:4px 0 0;font-size:13px;opacity:.85;font-weight:300}
+
+  /* ---------- PIN screen ---------- */
+  .pin-title{font-size:18px;font-weight:600;text-align:center;margin:6px 0 4px;color:#0b3d91}
+  .pin-sub{font-size:13px;text-align:center;color:#64748b;margin:0 0 18px}
+  .pin-dots{display:flex;justify-content:center;gap:14px;margin:22px 0 26px}
+  .pin-dots span{
+    width:16px;height:16px;border-radius:50%;background:#e2e8f0;
+    transition:transform .18s ease,background .18s ease;
+  }
+  .pin-dots span.filled{background:#1e5fd9;transform:scale(1.15)}
+  .pin-error{color:#dc2626;text-align:center;font-size:13px;min-height:18px;margin-bottom:10px;font-weight:500}
+  .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .keypad button{
+    height:60px;font-size:22px;font-weight:500;font-family:inherit;
+    background:#f1f5f9;border:none;border-radius:14px;color:#0f172a;
+    cursor:pointer;transition:background .12s ease,transform .06s ease;
+  }
+  .keypad button:active{background:#dbeafe;transform:scale(.96)}
+  .keypad button.ghost{background:transparent}
+  .keypad button.back{background:#fee2e2;color:#b91c1c;font-size:18px}
+
+  /* ---------- Main screen ---------- */
+  .profile{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:14px}
+  .avatar{
+    width:96px;height:96px;border-radius:50%;object-fit:cover;
+    background:#e2e8f0;border:3px solid #1e5fd9;box-shadow:0 6px 18px rgba(30,95,217,.35);
+  }
+  .name{font-size:18px;font-weight:600;color:#0b3d91;text-align:center;margin:0}
+  .clock{font-size:14px;color:#64748b;font-weight:400;text-align:center;font-variant-numeric:tabular-nums}
+
+  .camera-wrap{
+    margin:16px 0 14px;border-radius:18px;overflow:hidden;
+    background:#000;aspect-ratio:3/4;position:relative;
+  }
+  #video,#snapshot{width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1)}
+  #snapshot{display:none}
+  .cam-overlay{
+    position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle at center,transparent 45%,rgba(0,0,0,.55) 75%);
+  }
+  .scan-line{
+    position:absolute;left:8%;right:8%;height:2px;
+    background:linear-gradient(90deg,transparent,#22d3ee,transparent);
+    box-shadow:0 0 12px #22d3ee;
+    top:10%;
+    animation:scan 2.2s cubic-bezier(.5,0,.5,1) infinite;
+    opacity:.9;
+  }
+  @keyframes scan{
+    0%{top:10%;opacity:0}
+    10%{opacity:.9}
+    50%{top:88%;opacity:.9}
+    60%{opacity:.9}
+    100%{top:10%;opacity:0}
+  }
+  .cam-frame{
+    position:absolute;inset:8%;
+    border-radius:14px;border:2px solid rgba(255,255,255,.35);
+    box-shadow:0 0 0 9999px rgba(0,0,0,.28) inset;
+  }
+  .corner{position:absolute;width:22px;height:22px;border:3px solid #22d3ee}
+  .corner.tl{top:8%;left:8%;border-right:none;border-bottom:none;border-top-left-radius:8px}
+  .corner.tr{top:8%;right:8%;border-left:none;border-bottom:none;border-top-right-radius:8px}
+  .corner.bl{bottom:8%;left:8%;border-right:none;border-top:none;border-bottom-left-radius:8px}
+  .corner.br{bottom:8%;right:8%;border-left:none;border-top:none;border-bottom-right-radius:8px}
+
+  .status{
+    text-align:center;font-size:13.5px;color:#0b3d91;font-weight:500;
+    min-height:20px;margin:2px 0 10px;letter-spacing:.2px;
+  }
+  .status.err{color:#dc2626}
+  .status.ok{color:#059669}
+
+  .actions{display:grid;grid-template-columns:1fr;gap:10px;margin-top:6px}
+  .btn{
+    height:52px;border:none;border-radius:14px;font-family:inherit;font-size:15.5px;font-weight:600;
+    cursor:pointer;transition:transform .06s ease,box-shadow .15s ease,opacity .15s ease;
+    letter-spacing:.2px;
+  }
+  .btn:active{transform:scale(.98)}
+  .btn[disabled]{opacity:.55;cursor:not-allowed}
+  .btn-primary{background:linear-gradient(135deg,#1e5fd9,#0b3d91);color:#fff;box-shadow:0 10px 24px rgba(11,61,145,.35)}
+  .btn-danger{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;box-shadow:0 10px 24px rgba(185,28,28,.35)}
+  .btn-ghost{background:#f1f5f9;color:#475569}
+
+  .row{display:flex;gap:10px}
+  .row .btn{flex:1}
+
+  .spinner{
+    display:inline-block;width:16px;height:16px;border:2.5px solid rgba(255,255,255,.35);
+    border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-3px;margin-right:8px;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .hidden{display:none !important}
+
+  /* ---------- Full-screen loading overlay ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(11,61,145,.85);backdrop-filter:blur(8px);
+    display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;
+    z-index:50;padding:24px;text-align:center;
+  }
+  .overlay .big-spin{
+    width:56px;height:56px;border:4px solid rgba(255,255,255,.25);border-top-color:#22d3ee;
+    border-radius:50%;animation:spin 1s linear infinite;margin-bottom:16px;
+  }
+  .overlay p{margin:4px 0;font-size:15px;font-weight:500}
+  .overlay small{opacity:.8;font-weight:300;margin-top:4px;font-size:12.5px}
+
+  .footer{margin-top:14px;text-align:center;color:rgba(255,255,255,.75);font-size:11.5px;font-weight:300}
+  .foot-link{color:#fff;opacity:.9;text-decoration:none;font-weight:400}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="brand">
+    <h1>Clinic Attendance</h1>
+    <p>Secure Check-In / Check-Out</p>
+  </div>
+
+  <!-- ================= PIN SCREEN ================= -->
+  <section id="screen-pin" class="card">
+    <p class="pin-title">Enter your 4-digit PIN</p>
+    <p class="pin-sub">Location access is required to continue</p>
+    <div class="pin-dots" id="pinDots">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <div class="pin-error" id="pinError"></div>
+    <div class="keypad" id="keypad">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button class="ghost"></button>
+      <button data-k="0">0</button>
+      <button class="back" data-k="back">⌫</button>
+    </div>
+  </section>
+
+  <!-- ================= MAIN SCREEN ================= -->
+  <section id="screen-main" class="card hidden">
+    <div class="profile">
+      <img id="avatar" class="avatar" alt="profile" src="icon-192.png">
+      <p id="staffName" class="name">—</p>
+      <div id="clock" class="clock">--:--:--</div>
+    </div>
+
+    <div class="camera-wrap">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="snapshot"></canvas>
+      <div class="cam-overlay"></div>
+      <div class="cam-frame"></div>
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
+      <div class="scan-line"></div>
+    </div>
+
+    <div id="status" class="status">Align your face inside the frame</div>
+
+    <div class="actions">
+      <button id="btnAction" class="btn btn-primary">Check-In</button>
+      <div class="row">
+        <button id="btnCancel" class="btn btn-ghost">Cancel</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Loading overlay -->
+<div id="overlay" class="overlay hidden">
+  <div class="big-spin"></div>
+  <p id="overlayText">Please wait…</p>
+  <small id="overlaySub"></small>
+</div>
+
+<div class="footer">
+  <span id="build">v1.0</span> · <a class="foot-link" href="#" id="resetBtn">Reset</a>
+</div>
+
+<script src="config.js"></script>
+<script>
+/* ================================================================
+   Clinic Attendance – GitHub Pages front-end
+   Talks to Google Apps Script /exec via fetch(text/plain) to avoid
+   the CORS pre-flight that Apps Script cannot answer.
+   ================================================================ */
+(function(){
+  'use strict';
+
+  const SCRIPT_URL = (window.APP_CONFIG && window.APP_CONFIG.SCRIPT_URL) || '';
+  if (!SCRIPT_URL) console.warn('APP_CONFIG.SCRIPT_URL is missing — set it in config.js');
+
+  // -------- device id (persistent, non-sensitive) --------
+  function getDeviceId(){
+    let id = localStorage.getItem('attendance_device_id');
+    if (!id){
+      id = 'dev-' + Math.random().toString(36).slice(2,10) + '-' + Date.now().toString(36);
+      localStorage.setItem('attendance_device_id', id);
+    }
+    return id;
+  }
+  const DEVICE_ID = getDeviceId();
+
+  // -------- session state --------
+  const state = {
+    pin: '',
+    name: '',
+    photoUrl: '',
+    action: 'CHECKIN',        // 'CHECKIN' | 'CHECKOUT'
+    stream: null,
+    lastLoc: null,
+    submitting: false,
+  };
+
+  // -------- DOM refs --------
+  const $ = id => document.getElementById(id);
+  const screenPin  = $('screen-pin');
+  const screenMain = $('screen-main');
+  const pinDots    = $('pinDots').querySelectorAll('span');
+  const pinError   = $('pinError');
+  const keypad     = $('keypad');
+  const avatar     = $('avatar');
+  const staffName  = $('staffName');
+  const clockEl    = $('clock');
+  const statusEl   = $('status');
+  const btnAction  = $('btnAction');
+  const btnCancel  = $('btnCancel');
+  const video      = $('video');
+  const snapshot   = $('snapshot');
+  const overlay    = $('overlay');
+  const overlayText= $('overlayText');
+  const overlaySub = $('overlaySub');
+  const resetBtn   = $('resetBtn');
+
+  // -------- live clock --------
+  function tickClock(){
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    const ss = String(d.getSeconds()).padStart(2,'0');
+    const dd = d.toLocaleDateString(undefined,{weekday:'short',day:'2-digit',month:'short'});
+    clockEl.textContent = `${dd} · ${hh}:${mm}:${ss}`;
+  }
+  setInterval(tickClock,1000); tickClock();
+
+  // -------- overlay --------
+  function showOverlay(text,sub){
+    overlayText.textContent = text || 'Please wait…';
+    overlaySub.textContent  = sub || '';
+    overlay.classList.remove('hidden');
+  }
+  function hideOverlay(){ overlay.classList.add('hidden'); }
+
+  // -------- geolocation --------
+  function getLocation(){
+    return new Promise((resolve,reject)=>{
+      if (!('geolocation' in navigator)) return reject(new Error('Geolocation not supported'));
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy }),
+        err => reject(new Error(err.code === 1 ? 'Location permission denied' : 'Unable to get location')),
+        { enableHighAccuracy:true, timeout:15000, maximumAge:0 }
+      );
+    });
+  }
+
+  // -------- Apps Script POST (text/plain to avoid CORS preflight) --------
+  async function apiPost(payload){
+    const res = await fetch(SCRIPT_URL, {
+      method:'POST',
+      mode:'cors',
+      redirect:'follow',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch(e){ throw new Error('Bad server response'); }
+  }
+
+  // -------- PIN screen logic --------
+  function renderPinDots(){
+    pinDots.forEach((d,i)=> d.classList.toggle('filled', i < state.pin.length));
+  }
+  function setPinError(msg){ pinError.textContent = msg || ''; }
+
+  keypad.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const k = b.dataset.k; if (!k) return;
+    setPinError('');
+    if (k === 'back'){ state.pin = state.pin.slice(0,-1); renderPinDots(); return; }
+    if (state.pin.length >= 4) return;
+    state.pin += k;
+    renderPinDots();
+    if (state.pin.length === 4) submitPin();
+  });
+
+  async function submitPin(){
+    if (!SCRIPT_URL){ setPinError('App not configured'); return; }
+    showOverlay('Capturing Biometric Data…','Verifying location & PIN');
+    try{
+      const loc = await getLocation();
+      state.lastLoc = loc;
+      const res = await apiPost({
+        action:'LOGIN', pin: state.pin, deviceId: DEVICE_ID, lat: loc.lat, lng: loc.lng
+      });
+      if (!res.success){
+        state.pin = ''; renderPinDots();
+        hideOverlay(); setPinError(res.message || 'Login failed');
+        return;
+      }
+      state.name     = res.name || '';
+      state.photoUrl = res.photoUrl || '';
+      state.action   = (res.state === 'CHECKOUT') ? 'CHECKOUT' : 'CHECKIN';
+      await enterMainScreen();
+      hideOverlay();
+    }catch(err){
+      state.pin = ''; renderPinDots();
+      hideOverlay(); setPinError(err.message || 'Login error');
+    }
+  }
+
+  // -------- Main screen --------
+  async function enterMainScreen(){
+    screenPin.classList.add('hidden');
+    screenMain.classList.remove('hidden');
+    staffName.textContent = state.name;
+    if (state.photoUrl) avatar.src = state.photoUrl;
+    applyActionButton();
+    setStatus('Align your face inside the frame','');
+    await startCamera();
+  }
+
+  function applyActionButton(){
+    if (state.action === 'CHECKOUT'){
+      btnAction.textContent = 'Check-Out';
+      btnAction.classList.remove('btn-primary');
+      btnAction.classList.add('btn-danger');
+    } else {
+      btnAction.textContent = 'Check-In';
+      btnAction.classList.remove('btn-danger');
+      btnAction.classList.add('btn-primary');
+    }
+  }
+
+  function setStatus(msg,kind){
+    statusEl.textContent = msg || '';
+    statusEl.classList.remove('err','ok');
+    if (kind === 'err') statusEl.classList.add('err');
+    if (kind === 'ok')  statusEl.classList.add('ok');
+  }
+
+  // -------- Camera --------
+  async function startCamera(){
+    try{
+      state.stream = await navigator.mediaDevices.getUserMedia({
+        video:{ facingMode:'user', width:{ideal:720}, height:{ideal:960} },
+        audio:false
+      });
+      video.srcObject = state.stream;
+      video.style.display = 'block';
+      snapshot.style.display = 'none';
+    }catch(err){
+      setStatus('Camera permission denied','err');
+      btnAction.disabled = true;
+    }
+  }
+
+  function stopCamera(){
+    if (state.stream){
+      state.stream.getTracks().forEach(t => t.stop());
+      state.stream = null;
+    }
+    video.srcObject = null;
+  }
+
+  function captureDataUrl(){
+    const w = video.videoWidth || 720;
+    const h = video.videoHeight || 960;
+    snapshot.width  = w;
+    snapshot.height = h;
+    const ctx = snapshot.getContext('2d');
+    // mirror to match preview
+    ctx.save();
+    ctx.translate(w,0);
+    ctx.scale(-1,1);
+    ctx.drawImage(video,0,0,w,h);
+    ctx.restore();
+    snapshot.style.display = 'block';
+    video.style.display = 'none';
+    return snapshot.toDataURL('image/jpeg', 0.82);
+  }
+
+  // -------- Submit attendance --------
+  btnAction.addEventListener('click', onSubmitAttendance);
+  btnCancel.addEventListener('click', resetToPin);
+  resetBtn.addEventListener('click', e => { e.preventDefault(); resetToPin(); });
+
+  async function onSubmitAttendance(){
+    if (state.submitting) return;
+    state.submitting = true;
+    btnAction.disabled = true;
+    setStatus('Capturing Biometric Data…','');
+    showOverlay('Capturing Biometric Data…','Please hold still');
+
+    let dataUrl = '';
+    try{
+      dataUrl = captureDataUrl();
+    }catch(e){
+      hideOverlay();
+      setStatus('Camera capture failed','err');
+      state.submitting = false; btnAction.disabled = false;
+      return;
+    }
+
+    let loc;
+    try{ loc = await getLocation(); }
+    catch(err){
+      hideOverlay();
+      setStatus(err.message || 'Location error','err');
+      state.submitting = false; btnAction.disabled = false;
+      restartCameraPreview();
+      return;
+    }
+
+    overlayText.textContent = 'Entering Data…';
+    overlaySub.textContent  = 'Talking to the server';
+
+    try{
+      const res = await apiPost({
+        action:'SUBMIT',
+        subAction: state.action,
+        pin: state.pin,
+        deviceId: DEVICE_ID,
+        lat: loc.lat,
+        lng: loc.lng,
+        dataUrl: dataUrl
+      });
+      hideOverlay();
+      if (res.success){
+        setStatus(res.message || 'Recorded ✓','ok');
+        stopCamera();
+        // brief celebration, then back to PIN
+        setTimeout(async ()=>{
+          try{ await apiPost({ action:'LOGOUT', deviceId: DEVICE_ID }); }catch(e){}
+          resetToPin();
+        }, 2200);
+      } else {
+        setStatus(res.message || 'Submission failed','err');
+        state.submitting = false; btnAction.disabled = false;
+        restartCameraPreview();
+      }
+    }catch(err){
+      hideOverlay();
+      setStatus('Network error, try again','err');
+      state.submitting = false; btnAction.disabled = false;
+      restartCameraPreview();
+    }
+  }
+
+  async function restartCameraPreview(){
+    snapshot.style.display = 'none';
+    video.style.display = 'block';
+    if (!state.stream) await startCamera();
+  }
+
+  function resetToPin(){
+    stopCamera();
+    state.pin = '';
+    state.name = '';
+    state.photoUrl = '';
+    state.submitting = false;
+    btnAction.disabled = false;
+    renderPinDots();
+    setPinError('');
+    setStatus('','');
+    screenMain.classList.add('hidden');
+    screenPin.classList.remove('hidden');
+  }
+
+  // -------- PWA service worker --------
+  if ('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+    });
+  }
+
+  // Ask camera + location permission up-front on first user tap
+  document.addEventListener('visibilitychange', ()=>{
+    if (document.hidden && state.stream) stopCamera();
+  });
+})();
+</script>
+</body>
+</html>
