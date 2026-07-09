@@ -6,5 +6,5 @@
 //  is public by design (Apps Script Web App URL).
 // ---------------------------------------------------------
 window.APP_CONFIG = {
-  SCRIPT_URL: "https://script.google.com/macros/s/AKfycby6VIwbFWbD_dNlVWOS1inANu77SHeOTdvnoHcwEzKV7M0jaXKkL73tLz46rYt_4Hxv/exec"
+  SCRIPT_URL: "https://script.google.com/macros/s/AKfycbx-_3EHMgKMHtEEIMUf7Q2ZGgN08hriEZSz3uyxS8xreLfM_rhACyp22h_KS7ps0VpU/exec"
 };
